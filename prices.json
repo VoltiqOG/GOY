@@ -1,0 +1,15 @@
+{
+  "updated": "2026-10-31",
+  "source": "Bambu Lab EU Store (eu.store.bambulab.com/de) – Preise inkl. 19 % MwSt., Refill wo vorhanden",
+  "note": "Wird täglich von der GitHub Action 'Bambu-Preise aktualisieren' geprüft (scripts/fetch_prices.py).",
+  "items": {
+    "PLA Basic": { "price": 22.99, "kg": 1 },
+    "PLA Matt": { "price": 22.99, "kg": 1 },
+    "PLA Silk+": { "price": 25.99, "kg": 1 },
+    "PETG HF": { "price": 22.99, "kg": 1 },
+    "PETG Translucent": { "price": 22.99, "kg": 1 },
+    "ABS": { "price": 22.99, "kg": 1 },
+    "TPU 85A/90A": { "price": 43.99, "kg": 1 },
+    "Support for PLA": { "price": 25.99, "kg": 0.5 }
+  }
+}
