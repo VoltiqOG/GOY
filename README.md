@@ -12,14 +12,26 @@ Statische Seite ohne Build-Schritt, veröffentlicht über GitHub Pages:
 
 Technische Daten nach Herstellerangaben. Es gilt immer die Betriebsanleitung des Herstellers. Kalkulationswerte sind Beispiele und müssen mit dem Controlling abgestimmt werden.
 
-## Zugangsanfragen einrichten
+## Zugang einrichten (Google-Anmeldung und Zugangsanfragen)
 
-Die Anmeldeseite hat ein Formular „Kein Passwort? Zugang anfragen“. Die Anfrage geht per E-Mail an den Verantwortlichen; erst nach seiner Freigabe bekommt die Person das Passwort per E-Mail. Dafür läuft `scripts/zugang-anfrage.gs` als Google Apps Script im eigenen Google-Konto (kostenlos, bis 100 Mails pro Tag).
+Die Anmeldeseite kann zusätzlich zum Passwort **„Mit Google anmelden“** anbieten. Beim ersten Anmelden geht automatisch eine Anfrage per E-Mail an den Verantwortlichen; nach „Freigeben“ öffnet sich die Seite für dieses Google-Konto bei jeder Anmeldung. Das Formular „Zugang anfragen“ (Passwort per E-Mail) läuft über dasselbe Skript. Beides steckt in `scripts/zugang-anfrage.gs` und läuft als Google Apps Script im eigenen Google-Konto (kostenlos, bis 100 Mails pro Tag).
 
-1. [script.google.com](https://script.google.com) → **Neues Projekt**, Namen vergeben, den Inhalt von `scripts/zugang-anfrage.gs` einfügen, speichern.
-2. **Projekteinstellungen** (Zahnrad) → **Skripteigenschaften** hinzufügen: `PASSWORT` (das Passwort der Seite), `SEITE` (`https://voltiqog.github.io/goy/`), optional `ADMIN` (andere E-Mail für Anfragen).
-3. Im Editor die Funktion `testEinrichtung` auswählen → **Ausführen** → Berechtigungen erlauben. Es kommt eine Test-Mail.
-4. **Bereitstellen → Neue Bereitstellung** → Typ **Web-App**: *Ausführen als* **Ich**, *Zugriff* **Jeder**. Die Web-App-URL (endet auf `/exec`) kopieren.
-5. In `index.html` die URL eintragen: `const REQ = "https://script.google.com/macros/s/…/exec";`
+**1. OAuth-Client-ID anlegen** (nur für die Google-Anmeldung, ca. 5 Minuten)
 
-Das Passwort steht nur in den Skripteigenschaften, nicht im Repo. Wird das Passwort der Seite geändert, auch `PASSWORT` dort ändern.
+1. [console.cloud.google.com](https://console.cloud.google.com) → neues Projekt (z. B. „Handbuch-Anmeldung“).
+2. **APIs & Dienste → OAuth-Zustimmungsbildschirm**: Typ *Extern*, App-Name „Handbuch 3D-Druck & Laser“, eigene E-Mail eintragen, Bereiche nichts hinzufügen, speichern. Veröffentlichungsstatus auf **„In Produktion“** setzen (sonst können sich nur eingetragene Testnutzer anmelden; für die Anmeldung mit Name und E-Mail ist keine Überprüfung durch Google nötig).
+3. **APIs & Dienste → Anmeldedaten → Anmeldedaten erstellen → OAuth-Client-ID**, Typ **Webanwendung**, unter *Autorisierte JavaScript-Quellen* `https://voltiqog.github.io` eintragen. Die Client-ID (endet auf `.apps.googleusercontent.com`) kopieren.
+
+**2. Apps Script einrichten**
+
+1. [script.google.com](https://script.google.com) → **Neues Projekt**, Inhalt von `scripts/zugang-anfrage.gs` einfügen, speichern.
+2. **Projekteinstellungen → Skripteigenschaften**: `PASSWORT` (Passwort der Seite), `SEITE` (`https://voltiqog.github.io/goy/`), `GOOGLE_CLIENT_ID` (aus Schritt 1). Optional `ADMIN` (andere E-Mail für Anfragen) und `DOMAIN` (nur Konten einer Domain zulassen, z. B. `firma.de`).
+3. Funktion `testEinrichtung` ausführen → Berechtigungen erlauben → es kommt eine Test-Mail.
+4. **Bereitstellen → Neue Bereitstellung → Web-App**: *Ausführen als* **Ich**, *Zugriff* **Jeder**. Die Web-App-URL (endet auf `/exec`) kopieren.
+
+**3. In der Anmeldeseite eintragen** (`index.html`, oben im Skript; das Handbuch selbst muss dafür nicht neu verschlüsselt werden)
+
+- `const REQ = "…/exec";` – schaltet das Formular „Zugang anfragen“ ein.
+- `const GCID = "….apps.googleusercontent.com", AUTH = "…/exec";` – schaltet „Mit Google anmelden“ ein.
+
+**Verwalten:** Jede Anfrage-Mail enthält den Link „Zugänge verwalten“ (nicht weitergeben): Liste der freigegebenen Konten mit „Entziehen“, abgelehnte Konten mit „Doch freigeben“. Ein entzogenes Konto kommt nicht mehr hinein; Geräte, auf denen es mit „angemeldet bleiben“ schon offen ist, sperrt erst ein neues Passwort der Seite. Wird das Passwort geändert, auch `PASSWORT` in den Skripteigenschaften ändern.
