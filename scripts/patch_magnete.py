@@ -1,0 +1,103 @@
+"""Fügt dem QR-Code-Werkzeug die Option „4 Magnete“ hinzu (Taschen mit Aufmaß).
+
+Aufruf: python patch_magnete.py <unverschluesselte index.html>
+Die Werte stammen aus dem Handbuch: Kapitel 7.11 (Spiel 0,2 mm je Seite für
+Einlegeteile, Pause zum Einschließen), 8.3 (Boden/Deckel mind. 0,6 mm, Wand
+mind. 0,8 mm, empfohlen 1,2–1,6 mm) und 8.4 (Presspassung 0,00–0,05 mm je Seite).
+"""
+import sys
+
+path = sys.argv[1]
+s = open(path, encoding="utf-8").read()
+
+
+def rep(a, b):
+    global s
+    if a not in s:
+        raise SystemExit("Stelle nicht gefunden: " + a[:90])
+    s = s.replace(a, b, 1)
+
+
+# ---------- Formular
+rep('''            <label class="wfull">Text unter dem Code (optional)''',
+    '''            <label>Magnete<select name="mag"><option value="0">keine</option><option value="4">4 (in den Ecken)</option></select></label>
+            <label>Einbau<select name="mmode"><option value="pause">eingeschlossen (Pause, Kapitel 7.11)</option><option value="press">von hinten einpressen</option><option value="glue">von hinten einkleben</option></select></label>
+            <label>Magnet-Ø (mm)<input name="md" type="number" step="0.5" min="2"></label>
+            <label>Magnet-Höhe (mm)<input name="mh" type="number" step="0.5" min="0.5"></label>
+            <label>Randabstand Magnetmitte (mm)<input name="me" type="number" step="0.5" min="0" placeholder="automatisch"></label>
+            <label>Schichthöhe (mm)<input name="mlh" type="number" step="0.04" min="0.08"></label>
+            <label class="wfull">Text unter dem Code (optional)''')
+
+# ---------- Standardwerte
+rep('''hd: 4.2, label: "", lh: 4, inv: false }, sch: {} };''',
+    '''hd: 4.2, label: "", lh: 4, inv: false, mag: 0, mmode: "pause", md: 6, mh: 2, me: 0, mlh: 0.2 }, sch: {} };''')
+
+# ---------- Rechnung der Taschen
+rep('''    const qrHoles = () =>''', r'''    // ---------- Magnettaschen: Aufmaß und Lage nach Handbuch 7.11, 8.3 und 8.4
+    const MAGFIT = { pause: { side: 0.2, deep: 0.2, t: "Spiel 0,2 mm je Seite (Kapitel 7.11)" }, press: { side: 0.05, deep: 0, t: "Presspassung 0,05 mm je Seite (Kapitel 8.4)" }, glue: { side: 0.15, deep: 0.1, t: "Spielpassung 0,15 mm je Seite für den Kleber (Kapitel 8.4)" } };
+    function qrMagnets() {
+      const q = TS.qr; if (+q.mag !== 4 || !(q.md > 0) || !(q.mh > 0)) return null;
+      const f = MAGFIT[q.mmode] || MAGFIT.pause, lay = q.mlh > 0 ? q.mlh : 0.2, up = (v) => Math.ceil(v / lay - 1e-6) * lay;
+      const d = q.md + 2 * f.side, r = d / 2;
+      // z: Boden unter der Tasche (nur eingeschlossen), Tasche, Deckel bis Plattenoberseite. Alles auf ganze Schichten gerundet
+      const floor = q.mmode === "pause" ? up(0.6) : 0, z0 = floor, z1 = up(floor + q.mh + f.deep), cover = q.pt - z1;
+      const minCover = up(0.6), recCover = up(1.0), needPt = z1 + minCover;
+      const e = q.me > 0 ? q.me : Math.max(r + 2, q.rad > 0 ? q.rad : 0), pos = [[e, e], [q.pw - e, e], [e, q.ph - e], [q.pw - e, q.ph - e]];
+      // Wand zum Rand, bei runden Ecken zum Bogen gemessen
+      const R = Math.min(q.rad, q.pw / 2, q.ph / 2), wallAt = (x, y) => { const dx = Math.min(x, q.pw - x), dy = Math.min(y, q.ph - y); let w = Math.min(dx, dy) - r;
+        if (R > 0 && dx < R && dy < R) w = Math.min(w, R - Math.hypot(R - dx, R - dy) - r); return w; };
+      const wall = Math.min(...pos.map(([x, y]) => wallAt(x, y))), gapX = q.pw - 2 * e - d, gapY = q.ph - 2 * e - d;
+      return { d, r, f, lay, floor, z0, z1, cover, minCover, recCover, needPt, e, pos, wall, gapX, gapY, pauseZ: q.mmode === "pause" ? z1 : null };
+    }
+    function magMsgs(M, msgs) {
+      const q = TS.qr;
+      msgs.push(["", `Magnete ${n1(q.md, 1)} × ${n1(q.mh, 1)} mm → Tasche <b>Ø ${n1(M.d, 2)} mm</b>, ${n1(M.z1 - M.z0, 2)} mm tief (${M.f.t}${M.f.deep ? `, ${n1(M.f.deep, 1)} mm Luft in der Tiefe` : ""}, auf ${n1(M.lay, 2)}-mm-Schichten gerundet). Mittenabstand ${n1(q.pw - 2 * M.e, 1)} × ${n1(q.ph - 2 * M.e, 1)} mm, Randabstand ${n1(M.e, 1)} mm.`]);
+      if (M.cover < M.minCover - 1e-6) msgs.push(["err", `Platte zu dünn für die Magnete: über der Tasche bleiben ${n1(Math.max(0, M.cover), 2)} mm, nötig sind mind. ${n1(M.minCover, 1)} mm (3 Schichten, Kapitel 8.3). Plattendicke mindestens <b>${n1(M.needPt, 2)} mm</b>, besser ${n1(M.z1 + M.recCover, 2)} mm.`]);
+      else if (M.cover < M.recCover - 1e-6) msgs.push(["warn", `Deckel über den Magneten nur ${n1(M.cover, 2)} mm – hält, empfohlen sind 1,0–1,2 mm (Kapitel 8.3). Plattendicke ${n1(M.z1 + M.recCover, 2)} mm wäre sicherer.`]);
+      if (M.wall < 0.8) msgs.push(["err", `Wand zwischen Magnettasche und Plattenrand nur ${n1(Math.max(0, M.wall), 2)} mm (mind. 0,8 mm, Kapitel 8.3) – Randabstand vergrößern oder kleinere Magnete.`]);
+      else if (M.wall < 1.2) msgs.push(["warn", `Wand zum Rand ${n1(M.wall, 2)} mm – druckbar, empfohlen 1,2–1,6 mm (Kapitel 8.3).`]);
+      if (M.gapX < 0.8 || M.gapY < 0.8) msgs.push(["err", "Die Magnettaschen berühren sich – Platte größer oder Randabstand kleiner."]);
+      const H = qrHoles(), rh = q.hd / 2; if (H.some(([hx, hy]) => M.pos.some(([x, y]) => Math.hypot(hx - x, hy - y) < rh + M.r + 0.8))) msgs.push(["err", "Magnettaschen und Befestigungslöcher überschneiden sich – Löcher abwählen oder Randabstand ändern."]);
+      if (q.mmode === "pause") msgs.push(["", `Drucken: <b>Pause bei Z = ${n1(M.pauseZ, 2)} mm</b> einfügen (erste Schicht über der Tasche, Kapitel 7.11). Magnete mit gleicher Polung einlegen (vorher markieren), bündig, nicht überstehend – dann fortsetzen. Bodenschicht unter den Magneten ${n1(M.floor, 2)} mm schwächt die Haltekraft etwas.`]);
+      else msgs.push(["", `Taschen sind unten offen: Platte mit der Rückseite auf die Druckplatte, Magnete nach dem Druck ${q.mmode === "press" ? "mit einem Schraubstock gerade einpressen (gedruckte Bohrungen fallen eher klein aus – bei zu strammem Sitz Probekörper drucken, Kapitel 8.4)" : "mit 2K-Epoxid einkleben (Sekundenkleber hält auf Neodym schlecht)"}. Magnetfläche liegt bündig – volle Haltekraft. Polung vorher markieren.`]);
+    }
+    const qrHoles = () =>''')
+
+# Meldungen in qrBuild ergänzen
+rep('''      if (!/^https?:\\/\\/\\S+\\.\\S+/.test(q.url)) msgs.push(''',
+    '''      { const M = qrMagnets(); if (M) magMsgs(M, msgs); }
+      if (!/^https?:\\/\\/\\S+\\.\\S+/.test(q.url)) msgs.push(''')
+
+# ---------- STEP: Platte in Lagen zerlegen, damit die Taschen die richtige Tiefe haben
+rep('''      const plate = { name: "Platte", color: [0.95, 0.95, 0.95], z0: 0, z1: q.pt, outer: roundRect(0, 0, q.pw, q.ph, q.rad), holes: [] };
+      qrHoles().forEach(([x, y]) => plate.holes.push(circle(x, y, q.hd / 2)));
+      solids.push(plate);''',
+    '''      const M = qrMagnets(), outer = roundRect(0, 0, q.pw, q.ph, q.rad), bolt = () => qrHoles().map(([x, y]) => circle(x, y, q.hd / 2));
+      // Taschen als umschriebenes Vieleck, damit die schmalste Stelle nicht kleiner als das Sollmaß wird
+      const pocket = () => M.pos.map(([x, y]) => circle(x, y, M.r / Math.cos(Math.PI / 48), 48));
+      if (!M || M.cover <= 0) solids.push({ name: "Platte", color: [0.95, 0.95, 0.95], z0: 0, z1: q.pt, outer, holes: bolt() });
+      else {
+        if (M.z0 > 0) solids.push({ name: "Platte_Boden", color: [0.95, 0.95, 0.95], z0: 0, z1: M.z0, outer, holes: bolt() });
+        solids.push({ name: "Platte_Magnetlage", color: [0.95, 0.95, 0.95], z0: M.z0, z1: M.z1, outer, holes: [...bolt(), ...pocket()] });
+        solids.push({ name: "Platte_Deckel", color: [0.95, 0.95, 0.95], z0: M.z1, z1: q.pt, outer, holes: bolt() });
+      }''')
+
+# ---------- Vorschau: Taschen gestrichelt einzeichnen (nicht in der Laser-SVG)
+rep('''        (forLaser ? "" : `<rect x="0" y="0" width="${f3(q.pw)}" height="${f3(q.ph)}" rx="${f3(q.rad)}" fill="#fff"/>`) +''',
+    '''        (forLaser ? "" : `<rect x="0" y="0" width="${f3(q.pw)}" height="${f3(q.ph)}" rx="${f3(q.rad)}" fill="#fff"/>`) +
+        (forLaser ? "" : (() => { const M = qrMagnets(); return M ? `<g fill="none" stroke="#9a5a0b" stroke-width="0.35" stroke-dasharray="1 0.8">${M.pos.map(([x, y]) => `<circle cx="${f3(x)}" cy="${f3(Y(y))}" r="${f3(M.r)}"/>`).join("")}</g>` : ""; })()) +''')
+
+# Infozeile
+rep('''<span class="kchip">Modul <b>${n1(B.mod, 2)} mm</b></span></div>` +''',
+    '''<span class="kchip">Modul <b>${n1(B.mod, 2)} mm</b></span>${(() => { const M = qrMagnets(); return M ? `<span class="kchip">Magnettasche <b>Ø ${n1(M.d, 2)} × ${n1(M.z1 - M.z0, 2)} mm</b></span>` : ""; })()}</div>` +''')
+
+# Felder je nach Auswahl zeigen
+rep('''    function qrForm() {''', '''    function magVis() { const f = $("#q_form"), on = +f.elements.mag.value === 4; ["mmode", "md", "mh", "me", "mlh"].forEach((k) => { f.elements[k].closest("label").hidden = !on; }); if (!(TS.qr.me > 0)) f.elements.me.value = ""; }
+    function qrForm() {''')
+rep('''TS.qr[el.name] = el.type === "checkbox" ? el.checked : el.type === "number" ? num(el.value) : el.value; saveTS(); qrRender(); });''',
+    '''TS.qr[el.name] = el.type === "checkbox" ? el.checked : el.type === "number" ? num(el.value) : el.value; if (el.name === "mag") magVis(); saveTS(); qrRender(); });''')
+
+rep("qrForm(); qrRender(); schForm(); schRender();", "qrForm(); magVis(); qrRender(); schForm(); schRender();")
+
+open(path, "w", encoding="utf-8").write(s)
+print("Magnet-Option eingefügt:", path)
