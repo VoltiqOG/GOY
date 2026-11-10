@@ -12,26 +12,36 @@ Statische Seite ohne Build-Schritt, veröffentlicht über GitHub Pages:
 
 Technische Daten nach Herstellerangaben. Es gilt immer die Betriebsanleitung des Herstellers. Kalkulationswerte sind Beispiele und müssen mit dem Controlling abgestimmt werden.
 
-## Zugang einrichten (Google-Anmeldung und Zugangsanfragen)
+## Anmeldung mit Benutzerkonten
 
-Die Anmeldeseite kann zusätzlich zum Passwort **„Mit Google anmelden“** anbieten. Beim ersten Anmelden geht automatisch eine Anfrage per E-Mail an den Verantwortlichen; nach „Freigeben“ öffnet sich die Seite für dieses Google-Konto bei jeder Anmeldung. Das Formular „Zugang anfragen“ (Passwort per E-Mail) läuft über dasselbe Skript. Beides steckt in `scripts/zugang-anfrage.gs` und läuft als Google Apps Script im eigenen Google-Konto (kostenlos, bis 100 Mails pro Tag).
+Jede Person hat ein eigenes Konto (Benutzername + Passwort). Es gibt keinen Server: Die Seite ist verschlüsselt, und für jedes Konto steckt der Seitenschlüssel einzeln eingepackt in der `index.html`. Passwörter stehen nirgends, auch nicht als Hash.
 
-**1. OAuth-Client-ID anlegen** (nur für die Google-Anmeldung, ca. 5 Minuten)
+**Neues Konto (die Person selbst)**
 
-1. [console.cloud.google.com](https://console.cloud.google.com) → neues Projekt (z. B. „Handbuch-Anmeldung“).
-2. **APIs & Dienste → OAuth-Zustimmungsbildschirm**: Typ *Extern*, App-Name „Handbuch 3D-Druck & Laser“, eigene E-Mail eintragen, Bereiche nichts hinzufügen, speichern. Veröffentlichungsstatus auf **„In Produktion“** setzen (sonst können sich nur eingetragene Testnutzer anmelden; für die Anmeldung mit Name und E-Mail ist keine Überprüfung durch Google nötig).
-3. **APIs & Dienste → Anmeldedaten → Anmeldedaten erstellen → OAuth-Client-ID**, Typ **Webanwendung**, unter *Autorisierte JavaScript-Quellen* `https://voltiqog.github.io` eintragen. Die Client-ID (endet auf `.apps.googleusercontent.com`) kopieren.
+1. Auf der Anmeldeseite **„Konto anlegen“**: Name, Benutzername und Passwort (mindestens 10 Zeichen) eingeben.
+2. Den angezeigten **Konto-Code** (beginnt mit `SU3DL1.`) an den Verantwortlichen schicken. Der Code enthält das Passwort nicht.
 
-**2. Apps Script einrichten**
+**Freigeben (Verantwortlicher)**
 
-1. [script.google.com](https://script.google.com) → **Neues Projekt**, Inhalt von `scripts/zugang-anfrage.gs` einfügen, speichern.
-2. **Projekteinstellungen → Skripteigenschaften**: `PASSWORT` (Passwort der Seite), `SEITE` (`https://voltiqog.github.io/goy/`), `GOOGLE_CLIENT_ID` (aus Schritt 1). Optional `ADMIN` (andere E-Mail für Anfragen) und `DOMAIN` (nur Konten einer Domain zulassen, z. B. `firma.de`).
-3. Funktion `testEinrichtung` ausführen → Berechtigungen erlauben → es kommt eine Test-Mail.
-4. **Bereitstellen → Neue Bereitstellung → Web-App**: *Ausführen als* **Ich**, *Zugriff* **Jeder**. Die Web-App-URL (endet auf `/exec`) kopieren.
+```
+pip install cryptography          # einmalig
+python scripts/benutzer.py freigeben SU3DL1.xxxxx
+git commit -am "Konto freigegeben" && git push
+```
 
-**3. In der Anmeldeseite eintragen** (`index.html`, oben im Skript; das Handbuch selbst muss dafür nicht neu verschlüsselt werden)
+Das Skript fragt nach dem eigenen Benutzernamen und Passwort (oder `SEITEN_BENUTZER` / `SEITEN_PASSWORT`).
 
-- `const REQ = "…/exec";` – schaltet das Formular „Zugang anfragen“ ein.
-- `const GCID = "….apps.googleusercontent.com", AUTH = "…/exec";` – schaltet „Mit Google anmelden“ ein.
+| Befehl | Wirkung |
+|---|---|
+| `python scripts/benutzer.py liste` | alle Konten (Benutzername, Name) |
+| `… freigeben CODE` | Konto-Code freischalten |
+| `… freigeben CODE --ersetzen` | neues Passwort für ein vorhandenes Konto (vorher bei der Person nachfragen, ob der Code von ihr kommt) |
+| `… anlegen m.mustermann "Max Mustermann"` | Konto mit zufälligem Startpasswort anlegen |
+| `… entfernen m.mustermann` | Konto löschen **und** Seitenschlüssel wechseln |
+| `… schluessel` | nur den Seitenschlüssel wechseln |
 
-**Verwalten:** Jede Anfrage-Mail enthält den Link „Zugänge verwalten“ (nicht weitergeben): Liste der freigegebenen Konten mit „Entziehen“, abgelehnte Konten mit „Doch freigeben“. Ein entzogenes Konto kommt nicht mehr hinein; Geräte, auf denen es mit „angemeldet bleiben“ schon offen ist, sperrt erst ein neues Passwort der Seite. Wird das Passwort geändert, auch `PASSWORT` in den Skripteigenschaften ändern.
+**Passwort ändern / vergessen:** „Passwort vergessen?“ auf der Anmeldeseite oder „Passwort ändern“ im Konto-Menü erzeugt einen neuen Konto-Code für denselben Benutzernamen → `freigeben … --ersetzen`.
+
+**Grenzen (ehrlich):** Die Datei ist öffentlich abrufbar; der Schutz hängt an der Passwortlänge (PBKDF2 mit 600 000 Runden bremst das Durchprobieren, verhindert es bei schwachen Passwörtern aber nicht). Nach „entfernen“ kommt das Konto an keine neuen Stände mehr – eine Kopie, die jemand vorher gespeichert hat, bleibt lesbar. Alle anderen melden sich nach einem Schlüsselwechsel einmal neu an. Wer am Repository Schreibrechte hat, verwaltet die Konten.
+
+Inhalt ändern: `python scripts/aktualisieren.py index.html scripts/patch_x.py` (Anmeldung mit dem eigenen Konto).
