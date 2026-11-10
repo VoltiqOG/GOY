@@ -45,3 +45,13 @@ Das Skript fragt nach dem eigenen Benutzernamen und Passwort (oder `SEITEN_BENUT
 **Grenzen (ehrlich):** Die Datei ist öffentlich abrufbar; der Schutz hängt an der Passwortlänge (PBKDF2 mit 600 000 Runden bremst das Durchprobieren, verhindert es bei schwachen Passwörtern aber nicht). Nach „entfernen“ kommt das Konto an keine neuen Stände mehr – eine Kopie, die jemand vorher gespeichert hat, bleibt lesbar. Alle anderen melden sich nach einem Schlüsselwechsel einmal neu an. Wer am Repository Schreibrechte hat, verwaltet die Konten.
 
 Inhalt ändern: `python scripts/aktualisieren.py index.html scripts/patch_x.py` (Anmeldung mit dem eigenen Konto).
+
+## Zusätzlich: Mit Google anmelden
+
+Eingebaut, aber aus, bis zwei Werte eingetragen sind. Google-Konten sind ganz normale Konten (`g-…`): beim ersten Anmelden bekommt der Verantwortliche eine E-Mail mit dem fertigen `freigeben`-Befehl; Entfernen wie bei jedem Konto.
+
+1. **OAuth-Client-ID** ([console.cloud.google.com](https://console.cloud.google.com)): neues Projekt → *APIs & Dienste → OAuth-Zustimmungsbildschirm* (Extern, App-Name, eigene E-Mail, Status „In Produktion“) → *Anmeldedaten → OAuth-Client-ID*, Typ **Webanwendung**, autorisierte JavaScript-Quelle `https://voltiqog.github.io`. Client-ID kopieren.
+2. **Apps Script** ([script.google.com](https://script.google.com)): neues Projekt, Inhalt von `scripts/google-anmeldung.gs` einfügen. *Projekteinstellungen → Skripteigenschaften*: `GOOGLE_CLIENT_ID` (aus Schritt 1), optional `ADMIN`, `DOMAIN`. Funktion `testEinrichtung` einmal ausführen (Berechtigungen erlauben, Test-Mail kommt). *Bereitstellen → Web-App*: Ausführen als **Ich**, Zugriff **Jeder**. URL (endet auf `/exec`) kopieren.
+3. **Einschalten:** `python scripts/gate_google.py index.html CLIENT_ID WEBAPP_URL`, committen, pushen. Ausschalten: `… index.html aus`.
+
+Die Skripteigenschaft `MASTER` entsteht automatisch und darf nicht geändert werden – sonst müssen alle Google-Konten neu freigegeben werden. Wer das Apps Script verwaltet, könnte sich als jedes freigegebene Google-Konto anmelden; es gehört deshalb in das Google-Konto des Verantwortlichen.
