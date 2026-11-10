@@ -55,3 +55,12 @@ Eingebaut, aber aus, bis zwei Werte eingetragen sind. Google-Konten sind ganz no
 3. **Einschalten:** `python scripts/gate_google.py index.html CLIENT_ID WEBAPP_URL`, committen, pushen. Ausschalten: `… index.html aus`.
 
 Die Skripteigenschaft `MASTER` entsteht automatisch und darf nicht geändert werden – sonst müssen alle Google-Konten neu freigegeben werden. Wer das Apps Script verwaltet, könnte sich als jedes freigegebene Google-Konto anmelden; es gehört deshalb in das Google-Konto des Verantwortlichen.
+
+## Konten in der Seite verwalten (Verwalter)
+
+Konto-Menü → **Konten verwalten**: offene Anfragen freigeben oder ablehnen, Konto-Code von Hand einfügen, Rechte per Haken (Handbuch, Kostenrechner, Materialien, Modell prüfen, jedes Werkzeug einzeln, Verwalter), Konto entfernen. Gespeichert wird als Commit über die GitHub-API.
+
+- **Einmalig je Gerät:** ein *Fine-grained Personal Access Token* nur für dieses Repository mit **Contents: Read and write** hinterlegen. Es liegt nur im Browser des Verwalters.
+- **Benachrichtigung:** Neue Anfragen gehen verschlüsselt über einen öffentlichen Kanal (ntfy.sh, Adresse in `NTFY`) und erscheinen als roter Punkt am Konto-Symbol. Der Kanal behält Nachrichten 12 Stunden; die Anmeldeseite des Anfragenden sendet offene Anfragen deshalb beim nächsten Besuch erneut. Der Konto-Code per Hand funktioniert immer.
+- **Rechte sind Sichtbarkeit, kein Kopierschutz:** Nach der Anmeldung liegt die ganze Seite im Browser; ausgeblendete Bereiche kann jemand mit Fachwissen trotzdem öffnen.
+- Dasselbe per Skript: `python scripts/benutzer.py rechte m.mustermann doku,qr` (`*` = alles, `admin` = Verwalter).

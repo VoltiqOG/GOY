@@ -40,7 +40,7 @@
       <div id="rmsg" role="alert" aria-live="assertive"></div>
     </form>
     <div id="code_box" hidden>
-      <p class="okp"><b>Fast fertig.</b> Schick diesen Konto-Code an den Verantwortlichen (E-Mail oder Chat). Sobald er ihn freigegeben hat, meldest du dich mit Benutzername und Passwort an.</p>
+      <p class="okp" id="code_txt"><b>Fast fertig.</b> Schick diesen Konto-Code an den Verantwortlichen (E-Mail oder Chat). Sobald er ihn freigegeben hat, meldest du dich mit Benutzername und Passwort an.</p>
       <textarea id="code" readonly rows="6" aria-label="Konto-Code"></textarea>
       <button type="button" id="copy">Code kopieren</button>
       <small>Der Code enthält dein Passwort nicht. Merke dir Benutzername und Passwort – niemand kann es für dich nachsehen.</small>
@@ -51,12 +51,16 @@
 <script>
 (() => {
   const USERS = {};
-  const IV = "", DATA = "", SK = "su3dl-k2", SU = "su3dl-user", ITER = 600000;
+  const IV = "", DATA = "", SK = "su3dl-k2", SU = "su3dl-user", SI = "su3dl-uid", SR = "su3dl-rights", ITER = 600000;
+  const REQ = {};
+  const NTFY = "";
+  const GCID = "", GAUTH = "";
   const $ = (id) => document.getElementById(id), enc = new TextEncoder(), dec = new TextDecoder();
   const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
   const toB64 = (u) => { const a = new Uint8Array(u); let s = ""; for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode(...a.subarray(i, i + 0x8000)); return btoa(s); };
   const msg = $("msg"), btn = $("go");
   if (!window.crypto || !crypto.subtle || !window.DecompressionStream) { msg.textContent = "Dieser Browser ist zu alt. Bitte einen aktuellen Chrome, Edge, Firefox oder Safari verwenden."; btn.disabled = true; return; }
+  const EC = { name: "ECDH", namedCurve: "P-256" };
   const norm = (u) => String(u || "").trim().toLowerCase();
   const uid = async (u) => [...new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode("su3dl|" + norm(u))))].slice(0, 16).map((x) => x.toString(16).padStart(2, "0")).join("");
   async function kek(pw, salt) {
@@ -64,52 +68,71 @@
     return crypto.subtle.deriveKey({ name: "PBKDF2", hash: "SHA-256", salt, iterations: ITER }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
   }
   const gcmDec = (key, blob) => crypto.subtle.decrypt({ name: "AES-GCM", iv: blob.slice(0, 12) }, key, blob.slice(12));
+  const hkdf = async (bits, use) => crypto.subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt: new Uint8Array(32), info: enc.encode("su3dl-k") }, await crypto.subtle.importKey("raw", bits, "HKDF", false, ["deriveKey"]), { name: "AES-GCM", length: 256 }, false, [use]);
   // Konto öffnen: Passwort → privater Schlüssel → Seitenschlüssel
   async function unlock(user, pw) {
-    const e = USERS[await uid(user)];
+    const id = await uid(user), e = USERS[id];
     if (!e) { await kek(pw, new Uint8Array(16)); throw new Error("x"); } // gleiche Rechenzeit, damit man Benutzernamen nicht erraten kann
     const pk8 = await gcmDec(await kek(pw, b64(e.s)), b64(e.w));
-    const priv = await crypto.subtle.importKey("pkcs8", pk8, { name: "ECDH", namedCurve: "P-256" }, false, ["deriveBits"]);
-    const eph = await crypto.subtle.importKey("raw", b64(e.e), { name: "ECDH", namedCurve: "P-256" }, false, []);
-    const bits = await crypto.subtle.deriveBits({ name: "ECDH", public: eph }, priv, 256);
-    const hk = await crypto.subtle.importKey("raw", bits, "HKDF", false, ["deriveKey"]);
-    const wk = await crypto.subtle.deriveKey({ name: "HKDF", hash: "SHA-256", salt: new Uint8Array(32), info: enc.encode("su3dl-k") }, hk, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
-    const K = await gcmDec(wk, b64(e.k));
-    let name = norm(user);
-    try { name = dec.decode(await gcmDec(await crypto.subtle.importKey("raw", K, "AES-GCM", false, ["decrypt"]), b64(e.n))).split("\t")[0]; } catch (err) {}
-    return { K, name };
-  }
-  async function open(raw) {
-    const key = await crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"]);
-    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(IV) }, key, b64(DATA));
-    const html = await new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
-    document.open(); document.write(html); document.close();
+    const priv = await crypto.subtle.importKey("pkcs8", pk8, EC, false, ["deriveBits"]);
+    const bits = await crypto.subtle.deriveBits({ name: "ECDH", public: await crypto.subtle.importKey("raw", b64(e.e), EC, false, []) }, priv, 256);
+    return { K: await gcmDec(await hkdf(bits, "decrypt"), b64(e.k)), id };
   }
   const get = (k) => { try { return sessionStorage.getItem(k) || localStorage.getItem(k); } catch (e) { return null; } };
-  const store = (raw, name, keep) => { try { sessionStorage.setItem(SK, toB64(raw)); sessionStorage.setItem(SU, name); if (keep) { localStorage.setItem(SK, toB64(raw)); localStorage.setItem(SU, name); } } catch (e) {} };
-  const drop = () => { try { [SK, SU, "su3dl-gate"].forEach((k) => { sessionStorage.removeItem(k); localStorage.removeItem(k); }); } catch (e) {} };
-  try { localStorage.removeItem("su3dl-gate"); sessionStorage.removeItem("su3dl-gate"); } catch (e) {}
+  const store = (raw, id, keep) => { try { sessionStorage.setItem(SK, toB64(raw)); sessionStorage.setItem(SI, id); if (keep) { localStorage.setItem(SK, toB64(raw)); localStorage.setItem(SI, id); } } catch (e) {} };
+  const drop = () => { try { [SK, SU, SI, SR, "su3dl-gate"].forEach((k) => { sessionStorage.removeItem(k); localStorage.removeItem(k); }); } catch (e) {} };
+  try { localStorage.removeItem("su3dl-gate"); sessionStorage.removeItem("su3dl-gate"); localStorage.removeItem(SU); } catch (e) {}
+  // Seite öffnen: Name und Rechte des Kontos immer frisch aus der Kontenliste lesen
+  async function enter(raw, id) {
+    const e = USERS[id]; if (!e) throw new Error("x");
+    const key = await crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"]);
+    const t = dec.decode(await gcmDec(key, b64(e.n))).split("\t"); let r = t[2] || "*"; if (e.a && !/(^|,)admin(,|$)/.test(r)) r += ",admin";
+    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(IV) }, key, b64(DATA));
+    const html = await new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+    try { sessionStorage.setItem(SU, t[0]); sessionStorage.setItem(SR, r); } catch (err) {}
+    document.open(); document.write(html); document.close();
+  }
 
   // Konto-Code: Schlüsselpaar erzeugen, privater Teil mit dem Passwort verschlüsselt
   async function makeCode(name, user, pw) {
-    const kp = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+    const kp = await crypto.subtle.generateKey(EC, true, ["deriveBits"]);
     const pk8 = await crypto.subtle.exportKey("pkcs8", kp.privateKey), pub = await crypto.subtle.exportKey("raw", kp.publicKey);
     const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
     const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await kek(pw, salt), pk8), w = new Uint8Array(12 + ct.byteLength); w.set(iv); w.set(new Uint8Array(ct), 12);
     const json = JSON.stringify({ v: 1, n: name, u: user, s: toB64(salt), w: toB64(w), p: toB64(pub) });
     return "SU3DL1." + toB64(enc.encode(json)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
+  // Anfrage an die Verwalter: Konto-Code für den Anfrage-Schlüssel verschlüsselt an den Benachrichtigungskanal
+  async function notify(code) {
+    if (!NTFY || !REQ.p) return false;
+    try {
+      const eph = await crypto.subtle.generateKey(EC, true, ["deriveBits"]), ep = new Uint8Array(await crypto.subtle.exportKey("raw", eph.publicKey));
+      const bits = await crypto.subtle.deriveBits({ name: "ECDH", public: await crypto.subtle.importKey("raw", b64(REQ.p), EC, false, []) }, eph.privateKey, 256);
+      const iv = crypto.getRandomValues(new Uint8Array(12)), ct = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await hkdf(bits, "encrypt"), enc.encode(code)));
+      const out = new Uint8Array(65 + 12 + ct.length); out.set(ep); out.set(iv, 65); out.set(ct, 77);
+      const r = await fetch(NTFY, { method: "POST", body: "SU3DLR1." + toB64(out) });
+      if (!r.ok) return false;
+      try { localStorage.setItem("su3dl-pend", JSON.stringify({ c: code, t: Date.now() })); } catch (e) {}
+      return true;
+    } catch (e) { return false; }
+  }
+  // Offene eigene Anfrage: alle paar Stunden erneut senden, bis das Konto freigegeben ist (der Kanal vergisst nach 12 Stunden)
+  (async () => { try { const p = JSON.parse(localStorage.getItem("su3dl-pend") || "null"); if (!p) return;
+    const raw = p.c.slice(7).replace(/-/g, "+").replace(/_/g, "/"), j = JSON.parse(dec.decode(b64(raw + "=".repeat((4 - raw.length % 4) % 4)))), e = USERS[await uid(j.u)];
+    if (e && e.p === j.p) { localStorage.removeItem("su3dl-pend"); return; }
+    if (Date.now() - p.t > 30 * 864e5) { localStorage.removeItem("su3dl-pend"); return; }
+    if (Date.now() - (p.r || p.t) > 6 * 36e5) { p.r = Date.now(); if (await notify(p.c)) { const q = JSON.parse(localStorage.getItem("su3dl-pend")); q.t = p.t; q.r = p.r; localStorage.setItem("su3dl-pend", JSON.stringify(q)); } }
+  } catch (e) {} })();
 
   // ---------- Anmeldung mit Google: Das Apps Script prüft das Google-Konto und liefert das Geheimnis für dessen Konto
-  const GCID = "", GAUTH = "";
   const post = async (o) => (await fetch(GAUTH, { method: "POST", body: JSON.stringify(o) })).json();
   async function googleLogin(r) {
     const gm = $("gmsg"); gm.className = ""; gm.textContent = "Konto wird geprüft …";
     try {
       const j = await post({ t: "id", cred: r.credential });
       if (!j.ok) { gm.className = "err"; gm.textContent = j.msg || "Anmeldung mit Google nicht möglich."; return; }
-      if (USERS[await uid(j.u)]) { gm.className = "ok"; gm.textContent = "Freigegeben – wird geöffnet …"; const { K, name } = await unlock(j.u, j.s); store(K, name, $("keep").checked); await open(K); return; }
-      const a = await post({ t: "anfrage", cred: r.credential, code: await makeCode(j.name + " (" + j.email + ")", j.u, j.s) });
+      if (USERS[await uid(j.u)]) { gm.className = "ok"; gm.textContent = "Freigegeben – wird geöffnet …"; const { K, id } = await unlock(j.u, j.s); store(K, id, $("keep").checked); await enter(K, id); return; }
+      const code = await makeCode(j.name + " (" + j.email + ")", j.u, j.s), a = await post({ t: "anfrage", cred: r.credential, code }); notify(code);
       gm.className = a.ok ? "ok" : "err";
       gm.textContent = !a.ok ? (a.msg || "Die Anfrage konnte nicht gesendet werden.") : a.state === "wartet" ? `Deine Anfrage für ${j.email} liegt schon beim Verantwortlichen. Sobald er sie freigegeben hat, klappt die Anmeldung.`
         : `Hallo ${j.name}, dein Google-Konto ${j.email} ist noch nicht freigegeben. Die Anfrage ist an den Verantwortlichen gegangen – danach meldest du dich einfach wieder mit Google an.`;
@@ -126,28 +149,29 @@
 
   // Ansichten
   const show = (v) => { $("v_login").hidden = v !== "login"; $("v_reg").hidden = v === "login"; const pwm = v === "pw";
-    $("reg_intro").textContent = pwm ? "Neues Passwort setzen: Gib deinen bisherigen Benutzernamen und ein neues Passwort ein. Den Konto-Code schickst du an den Verantwortlichen – nach seiner Freigabe gilt das neue Passwort."
-      : "Lege dein Konto an. Du bekommst einen Konto-Code, den du an den Verantwortlichen schickst – nach seiner Freigabe kannst du dich anmelden.";
-    $("rs").textContent = pwm ? "Code für neues Passwort erzeugen" : "Konto-Code erzeugen"; (v === "login" ? $("un") : $("rn")).focus(); };
+    $("reg_intro").textContent = pwm ? "Neues Passwort setzen: Gib deinen bisherigen Benutzernamen und ein neues Passwort ein. Der Verantwortliche muss die Änderung freigeben – danach gilt das neue Passwort."
+      : "Lege dein Konto an. Der Verantwortliche bekommt deine Anfrage – nach seiner Freigabe kannst du dich anmelden.";
+    $("rs").textContent = pwm ? "Neues Passwort anfragen" : "Konto anfragen"; (v === "login" ? $("un") : $("rn")).focus(); };
   document.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => show(b.dataset.go)));
 
-  // Passwort ändern aus der Seite heraus (Fußzeile „Passwort ändern“)
+  // Passwort ändern aus der Seite heraus (Konto-Menü „Passwort ändern“)
   let konto = false; try { konto = sessionStorage.getItem("su3dl-konto") === "1"; sessionStorage.removeItem("su3dl-konto"); } catch (e) {}
-  const saved = get(SK);
+  const saved = get(SK), sid = get(SI);
   if (konto) { show("pw"); if (saved) { const b = $("back"); b.textContent = "Zurück zur Seite"; b.addEventListener("click", () => location.reload(), { once: true }); } }
-  else if (saved) open(b64(saved).buffer).catch(drop);
+  else if (saved && sid) enter(b64(saved).buffer, sid).catch(drop);
+  else if (saved) drop();
 
   // Anmelden (mit wachsender Wartezeit nach Fehlversuchen)
   let fails = 0;
   $("f").addEventListener("submit", async (e) => {
     e.preventDefault(); msg.textContent = ""; btn.disabled = true; btn.textContent = "Wird geprüft …";
-    try { const { K, name } = await unlock($("un").value, $("pw").value); store(K, name, $("keep").checked); await open(K); }
+    try { const { K, id } = await unlock($("un").value, $("pw").value); store(K, id, $("keep").checked); await enter(K, id); }
     catch (err) { drop(); fails++; const wait = Math.min(30, 2 ** Math.max(0, fails - 2)) * (fails > 2 ? 1000 : 0);
       msg.textContent = "Benutzername oder Passwort falsch." + (wait ? ` Nächster Versuch in ${wait / 1000} s.` : ""); btn.textContent = "Anmelden"; $("pw").select();
       setTimeout(() => { btn.disabled = false; }, wait); }
   });
 
-  // Konto anlegen: Schlüsselpaar im Browser erzeugen, privater Teil mit dem Passwort verschlüsselt
+  // Konto anlegen
   const strength = (p) => { let s = Math.min(p.length, 20) / 20 * 60; s += /[a-z]/.test(p) && /[A-Z]/.test(p) ? 12 : 0; s += /\d/.test(p) ? 12 : 0; s += /[^A-Za-z0-9]/.test(p) ? 16 : 0; return Math.min(100, s); };
   $("rp").addEventListener("input", () => { const v = strength($("rp").value), m = $("rmeter"); m.style.width = v + "%"; m.className = v < 55 ? "lo" : v < 80 ? "mid" : "hi"; });
   $("rf").addEventListener("submit", async (e) => {
@@ -159,8 +183,10 @@
     if (norm(p1).includes(user) || strength(p1) < 45) { rm.textContent = "Das Passwort ist zu einfach – länger machen oder Ziffern und Sonderzeichen ergänzen."; return; }
     rs.disabled = true; const t0 = rs.textContent; rs.textContent = "Wird erzeugt …";
     try {
-      $("code").value = await makeCode(name, user, p1);
-      $("rf").hidden = true; $("code_box").hidden = false; $("reg_intro").hidden = true; $("code").focus(); $("code").select();
+      const code = await makeCode(name, user, p1); $("code").value = code; const sent = await notify(code);
+      $("code_txt").innerHTML = sent ? "<b>Anfrage gesendet.</b> Der Verantwortliche sieht sie, sobald er die Seite öffnet. Nach seiner Freigabe meldest du dich mit Benutzername und Passwort an. Dauert es länger, schick ihm zusätzlich diesen Konto-Code:"
+        : "<b>Fast fertig.</b> Schick diesen Konto-Code an den Verantwortlichen (E-Mail oder Chat). Sobald er ihn freigegeben hat, meldest du dich mit Benutzername und Passwort an.";
+      $("rf").hidden = true; $("code_box").hidden = false; $("reg_intro").hidden = true; if (!sent) { $("code").focus(); $("code").select(); }
     } catch (err) { rm.textContent = "Das hat nicht geklappt – bitte noch einmal versuchen."; }
     rs.disabled = false; rs.textContent = t0;
   });
