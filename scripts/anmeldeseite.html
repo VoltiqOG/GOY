@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>3D-Druck &amp; Laser – Anmeldung</title>
+    <style>
+      :root {
+        --bg: #f5f5f7;
+        --card: #fff;
+        --ink: #1d1d1f;
+        --muted: #6e6e73;
+        --line: #e2e2e7;
+        --acc: #0071e3;
+        --err: #d70015;
+        --ok: #1d7f37;
+        --fill: rgba(118, 118, 128, 0.12);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #000;
+          --card: #1c1c1e;
+          --ink: #f5f5f7;
+          --muted: #a1a1a6;
+          --line: #2f2f32;
+          --acc: #0a84ff;
+          --err: #ff453a;
+          --ok: #30d158;
+          --fill: rgba(118, 118, 128, 0.24);
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        padding: 20px;
+        display: grid;
+        place-items: center;
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          17px/1.47 -apple-system,
+          BlinkMacSystemFont,
+          "SF Pro Text",
+          Inter,
+          "Segoe UI",
+          Roboto,
+          "Helvetica Neue",
+          Arial,
+          sans-serif;
+        letter-spacing: -0.011em;
+        -webkit-font-smoothing: antialiased;
+      }
+      main {
+        width: 100%;
+        max-width: 400px;
+        padding: 36px 32px 28px;
+        border-radius: 28px;
+        background: var(--card);
+        box-shadow:
+          0 1px 2px rgba(0, 0, 0, 0.04),
+          0 30px 60px -24px rgba(0, 0, 0, 0.22);
+      }
+      .k {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--acc);
+      }
+      h1 {
+        margin: 6px 0 8px;
+        font-size: 32px;
+        font-weight: 700;
+        line-height: 1.08;
+        letter-spacing: -0.035em;
+      }
+      p {
+        margin: 0 0 18px;
+        font-size: 15px;
+        color: var(--muted);
+      }
+      small {
+        display: block;
+        margin-top: 14px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      label {
+        display: block;
+        margin: 12px 0 6px;
+        font-size: 13px;
+        font-weight: 500;
+      }
+      form > label:first-child {
+        margin-top: 0;
+      }
+      .opt {
+        font-weight: 400;
+        color: var(--muted);
+      }
+      input[type="text"],
+      input[type="password"],
+      textarea {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1.5px solid transparent;
+        border-radius: 12px;
+        background: var(--fill);
+        color: var(--ink);
+        font: inherit;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s,
+          background-color 0.2s;
+      }
+      input[type="text"]:focus,
+      input[type="password"]:focus,
+      textarea:focus {
+        outline: none;
+        border-color: var(--acc);
+        background: var(--card);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--acc) 22%, transparent);
+      }
+      textarea {
+        margin-bottom: 12px;
+        resize: none;
+        word-break: break-all;
+        font:
+          12.5px/1.45 ui-monospace,
+          "SF Mono",
+          Menlo,
+          Consolas,
+          monospace;
+      }
+      .r {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 14px 0 0;
+        font-size: 14px;
+        font-weight: 400;
+        color: var(--muted);
+      }
+
+      button {
+        width: 100%;
+        padding: 13px;
+        border: 0;
+        border-radius: 980px;
+        background: var(--acc);
+        color: #fff;
+        font: inherit;
+        font-weight: 500;
+        cursor: pointer;
+        transition:
+          transform 0.2s cubic-bezier(0.28, 0.11, 0.32, 1),
+          filter 0.2s;
+      }
+      button:hover {
+        filter: brightness(1.06);
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+      form button {
+        margin-top: 18px;
+      }
+      .link {
+        width: auto;
+        margin: 0;
+        padding: 0;
+        background: none;
+        color: var(--acc);
+        filter: none;
+      }
+      .link:hover {
+        text-decoration: underline;
+        filter: none;
+      }
+      .alt {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin-top: 20px;
+        font-size: 14.5px;
+        color: var(--muted);
+      }
+
+      #msg,
+      #rmsg {
+        min-height: 22px;
+        margin: 12px 0 0;
+        font-size: 14px;
+        color: var(--err);
+      }
+      .okp {
+        font-size: 15px;
+        color: var(--ink);
+      }
+      .meter {
+        height: 4px;
+        margin-top: 8px;
+        border-radius: 4px;
+        background: var(--fill);
+        overflow: hidden;
+      }
+      .meter i {
+        display: block;
+        width: 0;
+        height: 100%;
+        border-radius: 4px;
+        transition:
+          width 0.3s,
+          background-color 0.3s;
+      }
+      .meter .lo {
+        background: #ff3b30;
+      }
+      .meter .mid {
+        background: #ff9f0a;
+      }
+      .meter .hi {
+        background: #34c759;
+      }
+
+      #gbox {
+        margin: 0 0 18px;
+      }
+      #gbtn {
+        display: flex;
+        justify-content: center;
+        min-height: 44px;
+      }
+      #gmsg {
+        min-height: 20px;
+        margin-top: 10px;
+        font-size: 14px;
+        text-align: center;
+        color: var(--muted);
+      }
+      #gmsg.ok {
+        color: var(--ok);
+      }
+      #gmsg.err {
+        color: var(--err);
+      }
+      .or {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 16px 0 4px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .or::before,
+      .or::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--line);
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        main {
+          animation: rein 0.7s cubic-bezier(0.28, 0.11, 0.32, 1) both;
+        }
+        @keyframes rein {
+          from {
+            opacity: 0;
+            transform: translateY(18px) scale(0.98);
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="k">Schulungsunterlage SU-3DL-001</div>
+      <h1>3D-Druck &amp; Laser</h1>
+
+      <!-- Anmelden -->
+      <section id="v_login">
+        <p>Diese Seite ist nur für den internen Gebrauch. Melde dich mit deinem Konto an.</p>
+        <div id="gbox" hidden>
+          <div id="gbtn"></div>
+          <div id="gmsg" role="status" aria-live="polite"></div>
+          <div class="or">oder mit Benutzername</div>
+        </div>
+        <form id="f" autocomplete="on">
+          <label for="un">Benutzername</label>
+          <input
+            type="text"
+            id="un"
+            name="username"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            required
+            autofocus
+          />
+          <label for="pw">Passwort</label>
+          <input type="password" id="pw" name="password" autocomplete="current-password" required />
+          <label class="r"><input type="checkbox" id="keep" /> Auf diesem Gerät angemeldet bleiben</label>
+          <button id="go">Anmelden</button>
+          <div id="msg" role="alert" aria-live="assertive"></div>
+        </form>
+        <div class="alt">
+          <button type="button" class="link" data-go="reg">Konto anlegen</button><span>·</span
+          ><button type="button" class="link" data-go="pw">Passwort vergessen?</button>
+        </div>
+      </section>
+
+      <!-- Konto anlegen / Passwort ändern -->
+      <section id="v_reg" hidden>
+        <p id="reg_intro">
+          Lege dein Konto an. Du bekommst einen Konto-Code, den du an den Verantwortlichen schickst – nach
+          seiner Freigabe kannst du dich anmelden.
+        </p>
+        <form id="rf" autocomplete="off">
+          <label for="rn">Vor- und Nachname</label>
+          <input type="text" id="rn" name="name" autocomplete="name" required maxlength="60" />
+          <label for="ru">Benutzername</label>
+          <input
+            type="text"
+            id="ru"
+            name="username"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            required
+            minlength="3"
+            maxlength="30"
+            pattern="[A-Za-z0-9._\-]+"
+            placeholder="z. B. m.mustermann"
+          />
+          <label for="rp">Passwort <span class="opt">(mindestens 10 Zeichen)</span></label>
+          <input
+            type="password"
+            id="rp"
+            name="new-password"
+            autocomplete="new-password"
+            required
+            minlength="10"
+          />
+          <div class="meter" aria-hidden="true"><i id="rmeter"></i></div>
+          <label for="rp2">Passwort wiederholen</label>
+          <input
+            type="password"
+            id="rp2"
+            name="new-password-2"
+            autocomplete="new-password"
+            required
+            minlength="10"
+          />
+          <button id="rs">Konto-Code erzeugen</button>
+          <div id="rmsg" role="alert" aria-live="assertive"></div>
+        </form>
+        <div id="code_box" hidden>
+          <p class="okp" id="code_txt">
+            <b>Fast fertig.</b> Schick diesen Konto-Code an den Verantwortlichen (E-Mail oder Chat). Sobald er
+            ihn freigegeben hat, meldest du dich mit Benutzername und Passwort an.
+          </p>
+          <textarea id="code" readonly rows="6" aria-label="Konto-Code"></textarea>
+          <button type="button" id="copy">Code kopieren</button>
+          <small
+            >Der Code enthält dein Passwort nicht. Merke dir Benutzername und Passwort – niemand kann es für
+            dich nachsehen.</small
+          >
+        </div>
+        <div class="alt">
+          <button type="button" class="link" data-go="login" id="back">Zurück zur Anmeldung</button>
+        </div>
+      </section>
+    </main>
+    <!-- Daten: Diese Zeilen schreiben scripts/seite.py, scripts/konten.py und die Verwaltung in der Seite. Format nicht ändern. -->
+    <!-- prettier-ignore -->
+    <script>
+const USERS = {};
+const IV = "", DATA = "";
+const REQ = {};
+const NTFY = "";
+const GCID = "", GAUTH = "";
+</script>
+    <script>
+      (() => {
+        const SK = "su3dl-k2",
+          SU = "su3dl-user",
+          SI = "su3dl-uid",
+          SR = "su3dl-rights",
+          ITER = 600000;
+        const $ = (id) => document.getElementById(id),
+          enc = new TextEncoder(),
+          dec = new TextDecoder();
+        const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+        const toB64 = (u) => {
+          const a = new Uint8Array(u);
+          let s = "";
+          for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode(...a.subarray(i, i + 0x8000));
+          return btoa(s);
+        };
+        const msg = $("msg"),
+          btn = $("go");
+        if (!window.crypto || !crypto.subtle || !window.DecompressionStream) {
+          msg.textContent =
+            "Dieser Browser ist zu alt. Bitte einen aktuellen Chrome, Edge, Firefox oder Safari verwenden.";
+          btn.disabled = true;
+          return;
+        }
+        const EC = { name: "ECDH", namedCurve: "P-256" };
+        const norm = (u) =>
+          String(u || "")
+            .trim()
+            .toLowerCase();
+        const uid = async (u) =>
+          [...new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode("su3dl|" + norm(u))))]
+            .slice(0, 16)
+            .map((x) => x.toString(16).padStart(2, "0"))
+            .join("");
+        async function kek(pw, salt) {
+          const base = await crypto.subtle.importKey(
+            "raw",
+            enc.encode(pw.normalize("NFC")),
+            "PBKDF2",
+            false,
+            ["deriveKey"],
+          );
+          return crypto.subtle.deriveKey(
+            { name: "PBKDF2", hash: "SHA-256", salt, iterations: ITER },
+            base,
+            { name: "AES-GCM", length: 256 },
+            false,
+            ["encrypt", "decrypt"],
+          );
+        }
+        const gcmDec = (key, blob) =>
+          crypto.subtle.decrypt({ name: "AES-GCM", iv: blob.slice(0, 12) }, key, blob.slice(12));
+        const hkdf = async (bits, use) =>
+          crypto.subtle.deriveKey(
+            { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(32), info: enc.encode("su3dl-k") },
+            await crypto.subtle.importKey("raw", bits, "HKDF", false, ["deriveKey"]),
+            { name: "AES-GCM", length: 256 },
+            false,
+            [use],
+          );
+        // Konto öffnen: Passwort → privater Schlüssel → Seitenschlüssel
+        async function unlock(user, pw) {
+          const id = await uid(user),
+            e = USERS[id];
+          if (!e) {
+            await kek(pw, new Uint8Array(16));
+            throw new Error("x");
+          } // gleiche Rechenzeit, damit man Benutzernamen nicht erraten kann
+          const pk8 = await gcmDec(await kek(pw, b64(e.s)), b64(e.w));
+          const priv = await crypto.subtle.importKey("pkcs8", pk8, EC, false, ["deriveBits"]);
+          const bits = await crypto.subtle.deriveBits(
+            { name: "ECDH", public: await crypto.subtle.importKey("raw", b64(e.e), EC, false, []) },
+            priv,
+            256,
+          );
+          return { K: await gcmDec(await hkdf(bits, "decrypt"), b64(e.k)), id };
+        }
+        const get = (k) => {
+          try {
+            return sessionStorage.getItem(k) || localStorage.getItem(k);
+          } catch (e) {
+            return null;
+          }
+        };
+        const store = (raw, id, keep) => {
+          try {
+            sessionStorage.setItem(SK, toB64(raw));
+            sessionStorage.setItem(SI, id);
+            if (keep) {
+              localStorage.setItem(SK, toB64(raw));
+              localStorage.setItem(SI, id);
+            }
+          } catch (e) {}
+        };
+        const drop = () => {
+          try {
+            [SK, SU, SI, SR, "su3dl-gate"].forEach((k) => {
+              sessionStorage.removeItem(k);
+              localStorage.removeItem(k);
+            });
+          } catch (e) {}
+        };
+        try {
+          localStorage.removeItem("su3dl-gate");
+          sessionStorage.removeItem("su3dl-gate");
+          localStorage.removeItem(SU);
+        } catch (e) {}
+        // Seite öffnen: Name und Rechte des Kontos immer frisch aus der Kontenliste lesen
+        async function enter(raw, id) {
+          const e = USERS[id];
+          if (!e) throw new Error("x");
+          const key = await crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["decrypt"]);
+          const t = dec.decode(await gcmDec(key, b64(e.n))).split("\t");
+          let r = t[2] || "*";
+          if (e.a && !/(^|,)admin(,|$)/.test(r)) r += ",admin";
+          const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(IV) }, key, b64(DATA));
+          const html = await new Response(
+            new Blob([plain]).stream().pipeThrough(new DecompressionStream("gzip")),
+          ).text();
+          try {
+            sessionStorage.setItem(SU, t[0]);
+            sessionStorage.setItem(SR, r);
+          } catch (err) {}
+          document.open();
+          document.write(html);
+          document.close();
+        }
+
+        // Konto-Code: Schlüsselpaar erzeugen, privater Teil mit dem Passwort verschlüsselt
+        async function makeCode(name, user, pw) {
+          const kp = await crypto.subtle.generateKey(EC, true, ["deriveBits"]);
+          const pk8 = await crypto.subtle.exportKey("pkcs8", kp.privateKey),
+            pub = await crypto.subtle.exportKey("raw", kp.publicKey);
+          const salt = crypto.getRandomValues(new Uint8Array(16)),
+            iv = crypto.getRandomValues(new Uint8Array(12));
+          const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await kek(pw, salt), pk8),
+            w = new Uint8Array(12 + ct.byteLength);
+          w.set(iv);
+          w.set(new Uint8Array(ct), 12);
+          const json = JSON.stringify({ v: 1, n: name, u: user, s: toB64(salt), w: toB64(w), p: toB64(pub) });
+          return (
+            "SU3DL1." + toB64(enc.encode(json)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
+          );
+        }
+        // Anfrage an die Verwalter: Konto-Code für den Anfrage-Schlüssel verschlüsselt an den Benachrichtigungskanal
+        async function notify(code) {
+          if (!NTFY || !REQ.p) return false;
+          try {
+            const eph = await crypto.subtle.generateKey(EC, true, ["deriveBits"]),
+              ep = new Uint8Array(await crypto.subtle.exportKey("raw", eph.publicKey));
+            const bits = await crypto.subtle.deriveBits(
+              { name: "ECDH", public: await crypto.subtle.importKey("raw", b64(REQ.p), EC, false, []) },
+              eph.privateKey,
+              256,
+            );
+            const iv = crypto.getRandomValues(new Uint8Array(12)),
+              ct = new Uint8Array(
+                await crypto.subtle.encrypt(
+                  { name: "AES-GCM", iv },
+                  await hkdf(bits, "encrypt"),
+                  enc.encode(code),
+                ),
+              );
+            const out = new Uint8Array(65 + 12 + ct.length);
+            out.set(ep);
+            out.set(iv, 65);
+            out.set(ct, 77);
+            const r = await fetch(NTFY, { method: "POST", body: "SU3DLR1." + toB64(out) });
+            if (!r.ok) return false;
+            try {
+              localStorage.setItem("su3dl-pend", JSON.stringify({ c: code, t: Date.now() }));
+            } catch (e) {}
+            return true;
+          } catch (e) {
+            return false;
+          }
+        }
+        // Offene eigene Anfrage: alle paar Stunden erneut senden, bis das Konto freigegeben ist (der Kanal vergisst nach 12 Stunden)
+        (async () => {
+          try {
+            const p = JSON.parse(localStorage.getItem("su3dl-pend") || "null");
+            if (!p) return;
+            const raw = p.c.slice(7).replace(/-/g, "+").replace(/_/g, "/"),
+              j = JSON.parse(dec.decode(b64(raw + "=".repeat((4 - (raw.length % 4)) % 4)))),
+              e = USERS[await uid(j.u)];
+            if (e && e.p === j.p) {
+              localStorage.removeItem("su3dl-pend");
+              return;
+            }
+            if (Date.now() - p.t > 30 * 864e5) {
+              localStorage.removeItem("su3dl-pend");
+              return;
+            }
+            if (Date.now() - (p.r || p.t) > 6 * 36e5) {
+              p.r = Date.now();
+              if (await notify(p.c)) {
+                const q = JSON.parse(localStorage.getItem("su3dl-pend"));
+                q.t = p.t;
+                q.r = p.r;
+                localStorage.setItem("su3dl-pend", JSON.stringify(q));
+              }
+            }
+          } catch (e) {}
+        })();
+
+        // ---------- Anmeldung mit Google: Das Apps Script prüft das Google-Konto und liefert das Geheimnis für dessen Konto
+        const post = async (o) => (await fetch(GAUTH, { method: "POST", body: JSON.stringify(o) })).json();
+        async function googleLogin(r) {
+          const gm = $("gmsg");
+          gm.className = "";
+          gm.textContent = "Konto wird geprüft …";
+          try {
+            const j = await post({ t: "id", cred: r.credential });
+            if (!j.ok) {
+              gm.className = "err";
+              gm.textContent = j.msg || "Anmeldung mit Google nicht möglich.";
+              return;
+            }
+            if (USERS[await uid(j.u)]) {
+              gm.className = "ok";
+              gm.textContent = "Freigegeben – wird geöffnet …";
+              const { K, id } = await unlock(j.u, j.s);
+              store(K, id, $("keep").checked);
+              await enter(K, id);
+              return;
+            }
+            const code = await makeCode(j.name + " (" + j.email + ")", j.u, j.s),
+              a = await post({ t: "anfrage", cred: r.credential, code });
+            notify(code);
+            gm.className = a.ok ? "ok" : "err";
+            gm.textContent = !a.ok
+              ? a.msg || "Die Anfrage konnte nicht gesendet werden."
+              : a.state === "wartet"
+                ? `Deine Anfrage für ${j.email} liegt schon beim Verantwortlichen. Sobald er sie freigegeben hat, klappt die Anmeldung.`
+                : `Hallo ${j.name}, dein Google-Konto ${j.email} ist noch nicht freigegeben. Die Anfrage ist an den Verantwortlichen gegangen – danach meldest du dich einfach wieder mit Google an.`;
+          } catch (err) {
+            gm.className = "err";
+            gm.textContent =
+              "Anmeldung über Google hat nicht geklappt – Internetverbindung prüfen oder Benutzername und Passwort nutzen.";
+          }
+        }
+        if (GCID && GAUTH) {
+          $("gbox").hidden = false;
+          const sc = document.createElement("script");
+          sc.src = "https://accounts.google.com/gsi/client";
+          sc.async = true;
+          sc.onload = () => {
+            google.accounts.id.initialize({
+              client_id: GCID,
+              callback: googleLogin,
+              ux_mode: "popup",
+              auto_select: false,
+            });
+            google.accounts.id.renderButton($("gbtn"), {
+              theme: matchMedia("(prefers-color-scheme: dark)").matches ? "filled_black" : "outline",
+              size: "large",
+              text: "signin_with",
+              shape: "pill",
+              locale: "de",
+              width: 300,
+            });
+          };
+          sc.onerror = () => {
+            $("gmsg").textContent =
+              "Google-Anmeldung nicht erreichbar – bitte Benutzername und Passwort nutzen.";
+          };
+          document.head.append(sc);
+        }
+
+        // Ansichten
+        const show = (v) => {
+          $("v_login").hidden = v !== "login";
+          $("v_reg").hidden = v === "login";
+          const pwm = v === "pw";
+          $("reg_intro").textContent = pwm
+            ? "Neues Passwort setzen: Gib deinen bisherigen Benutzernamen und ein neues Passwort ein. Der Verantwortliche muss die Änderung freigeben – danach gilt das neue Passwort."
+            : "Lege dein Konto an. Der Verantwortliche bekommt deine Anfrage – nach seiner Freigabe kannst du dich anmelden.";
+          $("rs").textContent = pwm ? "Neues Passwort anfragen" : "Konto anfragen";
+          (v === "login" ? $("un") : $("rn")).focus();
+        };
+        document
+          .querySelectorAll("[data-go]")
+          .forEach((b) => b.addEventListener("click", () => show(b.dataset.go)));
+
+        // Passwort ändern aus der Seite heraus (Konto-Menü „Passwort ändern“)
+        let konto = false;
+        try {
+          konto = sessionStorage.getItem("su3dl-konto") === "1";
+          sessionStorage.removeItem("su3dl-konto");
+        } catch (e) {}
+        const saved = get(SK),
+          sid = get(SI);
+        if (konto) {
+          show("pw");
+          if (saved) {
+            const b = $("back");
+            b.textContent = "Zurück zur Seite";
+            b.addEventListener("click", () => location.reload(), { once: true });
+          }
+        } else if (saved && sid) enter(b64(saved).buffer, sid).catch(drop);
+        else if (saved) drop();
+
+        // Anmelden (mit wachsender Wartezeit nach Fehlversuchen)
+        let fails = 0;
+        $("f").addEventListener("submit", async (e) => {
+          e.preventDefault();
+          msg.textContent = "";
+          btn.disabled = true;
+          btn.textContent = "Wird geprüft …";
+          try {
+            const { K, id } = await unlock($("un").value, $("pw").value);
+            store(K, id, $("keep").checked);
+            await enter(K, id);
+          } catch (err) {
+            drop();
+            fails++;
+            const wait = Math.min(30, 2 ** Math.max(0, fails - 2)) * (fails > 2 ? 1000 : 0);
+            msg.textContent =
+              "Benutzername oder Passwort falsch." + (wait ? ` Nächster Versuch in ${wait / 1000} s.` : "");
+            btn.textContent = "Anmelden";
+            $("pw").select();
+            setTimeout(() => {
+              btn.disabled = false;
+            }, wait);
+          }
+        });
+
+        // Konto anlegen
+        const strength = (p) => {
+          let s = (Math.min(p.length, 20) / 20) * 60;
+          s += /[a-z]/.test(p) && /[A-Z]/.test(p) ? 12 : 0;
+          s += /\d/.test(p) ? 12 : 0;
+          s += /[^A-Za-z0-9]/.test(p) ? 16 : 0;
+          return Math.min(100, s);
+        };
+        $("rp").addEventListener("input", () => {
+          const v = strength($("rp").value),
+            m = $("rmeter");
+          m.style.width = v + "%";
+          m.className = v < 55 ? "lo" : v < 80 ? "mid" : "hi";
+        });
+        $("rf").addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const rm = $("rmsg"),
+            rs = $("rs");
+          rm.textContent = "";
+          const name = $("rn").value.trim(),
+            user = norm($("ru").value),
+            p1 = $("rp").value,
+            p2 = $("rp2").value;
+          if (!/^[a-z0-9._-]{3,30}$/.test(user)) {
+            rm.textContent =
+              "Benutzername: 3–30 Zeichen, nur Buchstaben, Ziffern, Punkt, Minus, Unterstrich.";
+            return;
+          }
+          if (p1.length < 10) {
+            rm.textContent = "Das Passwort braucht mindestens 10 Zeichen.";
+            return;
+          }
+          if (p1 !== p2) {
+            rm.textContent = "Die beiden Passwörter sind nicht gleich.";
+            return;
+          }
+          if (norm(p1).includes(user) || strength(p1) < 45) {
+            rm.textContent =
+              "Das Passwort ist zu einfach – länger machen oder Ziffern und Sonderzeichen ergänzen.";
+            return;
+          }
+          rs.disabled = true;
+          const t0 = rs.textContent;
+          rs.textContent = "Wird erzeugt …";
+          try {
+            const code = await makeCode(name, user, p1);
+            $("code").value = code;
+            const sent = await notify(code);
+            $("code_txt").innerHTML = sent
+              ? "<b>Anfrage gesendet.</b> Der Verantwortliche sieht sie, sobald er die Seite öffnet. Nach seiner Freigabe meldest du dich mit Benutzername und Passwort an. Dauert es länger, schick ihm zusätzlich diesen Konto-Code:"
+              : "<b>Fast fertig.</b> Schick diesen Konto-Code an den Verantwortlichen (E-Mail oder Chat). Sobald er ihn freigegeben hat, meldest du dich mit Benutzername und Passwort an.";
+            $("rf").hidden = true;
+            $("code_box").hidden = false;
+            $("reg_intro").hidden = true;
+            if (!sent) {
+              $("code").focus();
+              $("code").select();
+            }
+          } catch (err) {
+            rm.textContent = "Das hat nicht geklappt – bitte noch einmal versuchen.";
+          }
+          rs.disabled = false;
+          rs.textContent = t0;
+        });
+        $("copy").addEventListener("click", async () => {
+          const c = $("code");
+          c.select();
+          try {
+            await navigator.clipboard.writeText(c.value);
+          } catch (e) {
+            document.execCommand("copy");
+          }
+          $("copy").textContent = "Kopiert ✓";
+          setTimeout(() => {
+            $("copy").textContent = "Code kopieren";
+          }, 2000);
+        });
+      })();
+    </script>
+  </body>
+</html>

@@ -3,7 +3,7 @@
  *
  * Das Skript prüft ein Google-Konto und gibt dafür ein festes Geheimnis zurück, das nur zu diesem Konto gehört.
  * Mit dem Geheimnis öffnet die Anmeldeseite ein normales Benutzerkonto („g-…“). Ob jemand hineinkommt, entscheidet
- * allein die Freigabe in der index.html (scripts/benutzer.py freigeben / entfernen) – das Skript kennt weder den
+ * allein die Freigabe in der index.html (scripts/konten.py freigeben / entfernen) – das Skript kennt weder den
  * Seitenschlüssel noch den Inhalt.
  *
  * Skripteigenschaften (Projekteinstellungen):
@@ -55,7 +55,7 @@ function anfrage_(id, u, code) {
     P.getKeys().forEach(function (k) { if ((k.indexOf("z_") === 0 && k !== kz) || (k.indexOf("q_") === 0 && P.getProperty(k) !== heute)) P.deleteProperty(k); });
   } finally { lock.releaseLock(); }
   MailApp.sendEmail({ to: admin_(), subject: "Handbuch 3D-Druck & Laser: Zugang für " + soll,
-    body: soll + " möchte sich mit dem Google-Konto anmelden.\n\nFreigeben (im Ordner des Repos):\n\npython scripts/benutzer.py freigeben " + code + "\n\ndanach committen und pushen. Wieder entziehen: python scripts/benutzer.py entfernen " + u + "\n\nNicht freigeben? Dann einfach nichts tun." });
+    body: soll + " möchte sich mit dem Google-Konto anmelden.\n\nFreigeben (im Ordner des Repos):\n\npython scripts/konten.py freigeben " + code + "\n\ndanach committen und pushen. Wieder entziehen: python scripts/konten.py entfernen " + u + "\n\nNicht freigeben? Dann einfach nichts tun." });
   return { ok: true, state: "neu" };
 }
 
