@@ -285,6 +285,99 @@
           }
         }
       }
+      /* Gestaltung 5: wie die Seite – Stahlblau, klare Kanten, eigene Schriften (Ordner fonts/) */
+      @font-face {
+        font-family: "Barlow Semi Condensed";
+        font-weight: 600;
+        font-display: swap;
+        src: url(fonts/barlow-semicondensed-600.woff) format("woff");
+      }
+      @font-face {
+        font-family: "IBM Plex Sans";
+        font-weight: 400;
+        font-display: swap;
+        src: url(fonts/plex-sans-400.woff) format("woff");
+      }
+      @font-face {
+        font-family: "IBM Plex Sans";
+        font-weight: 500 600;
+        font-display: swap;
+        src: url(fonts/plex-sans-500.woff) format("woff");
+      }
+      :root {
+        --bg: #f2f4f6;
+        --card: #fff;
+        --ink: #17212b;
+        --muted: #5b6875;
+        --line: #d3d9df;
+        --line2: #aeb8c2;
+        --acc: #0e518d;
+        --onacc: #fff;
+        --err: #bf2a1e;
+        --ok: #1f7a3d;
+        --fill: #fff;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #11171d;
+          --card: #19212a;
+          --ink: #e9eef3;
+          --muted: #96a3b0;
+          --line: #2a3541;
+          --line2: #3f4d5b;
+          --acc: #63a8e8;
+          --onacc: #0b1622;
+          --err: #f0736a;
+          --ok: #5cc47c;
+          --fill: #11171d;
+        }
+      }
+      body {
+        font:
+          16px/1.5 "IBM Plex Sans",
+          "Segoe UI",
+          Arial,
+          sans-serif;
+        letter-spacing: 0;
+      }
+      main {
+        border: 1px solid var(--line2);
+        border-radius: 6px;
+        box-shadow: none;
+        animation: none;
+      }
+      h1 {
+        font:
+          600 36px/1.05 "Barlow Semi Condensed",
+          "Arial Narrow",
+          sans-serif;
+        letter-spacing: 0;
+      }
+      .k {
+        color: var(--muted);
+        font-weight: 500;
+      }
+      input[type="text"],
+      input[type="password"],
+      textarea {
+        border: 1px solid var(--line2);
+        border-radius: 4px;
+      }
+      input[type="text"]:focus,
+      input[type="password"]:focus,
+      textarea:focus {
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc) 22%, transparent);
+      }
+      button {
+        border-radius: 4px;
+        color: var(--onacc);
+      }
+      button:active {
+        transform: none;
+      }
+      .link {
+        color: var(--acc);
+      }
     </style>
   </head>
   <body>
