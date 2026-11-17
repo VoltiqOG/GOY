@@ -543,12 +543,38 @@ const GCID = "", GAUTH = "";
           crypto.subtle.decrypt({ name: "AES-GCM", iv: blob.slice(0, 12) }, key, blob.slice(12));
         const hkdf = async (bits, use) =>
           crypto.subtle.deriveKey(
-            { name: "HKDF", hash: "SHA-256", salt: new Uint8Array(32), info: enc.encode("su3dl-k") },
+            {
+              name: "HKDF",
+              hash: "SHA-256",
+              salt: new Uint8Array(32),
+              info: enc.encode("su3dl-k"),
+            },
             await crypto.subtle.importKey("raw", bits, "HKDF", false, ["deriveKey"]),
             { name: "AES-GCM", length: 256 },
             false,
             [use],
           );
+        // Geänderte Passwörter, die noch nicht in der Kontenliste stehen (siehe „Passwort ändern“ in der Seite)
+        const PV = "su3dl-pwneu";
+        const pending = () => {
+          try {
+            return JSON.parse(localStorage.getItem(PV) || "{}") || {};
+          } catch (e) {
+            return {};
+          }
+        };
+        try {
+          const o = pending();
+          let ch = false;
+          for (const k in o) {
+            const e = USERS[k];
+            if (!e || e.s === o[k].s || e.p !== o[k].p || Date.now() - o[k].t > 90 * 864e5) {
+              delete o[k];
+              ch = true;
+            }
+          }
+          if (ch) localStorage.setItem(PV, JSON.stringify(o));
+        } catch (e) {}
         // Konto öffnen: Passwort → privater Schlüssel → Seitenschlüssel
         async function unlock(user, pw) {
           const id = await uid(user),
@@ -557,10 +583,21 @@ const GCID = "", GAUTH = "";
             await kek(pw, new Uint8Array(16));
             throw new Error("x");
           } // gleiche Rechenzeit, damit man Benutzernamen nicht erraten kann
-          const pk8 = await gcmDec(await kek(pw, b64(e.s)), b64(e.w));
+          let pk8;
+          try {
+            pk8 = await gcmDec(await kek(pw, b64(e.s)), b64(e.w));
+          } catch (err) {
+            // Passwort in der Seite geändert, aber von der Verwaltung noch nicht übernommen: auf diesem Gerät gilt es schon
+            const o = pending()[id];
+            if (!o || o.p !== e.p) throw err;
+            pk8 = await gcmDec(await kek(pw, b64(o.s)), b64(o.w));
+          }
           const priv = await crypto.subtle.importKey("pkcs8", pk8, EC, false, ["deriveBits"]);
           const bits = await crypto.subtle.deriveBits(
-            { name: "ECDH", public: await crypto.subtle.importKey("raw", b64(e.e), EC, false, []) },
+            {
+              name: "ECDH",
+              public: await crypto.subtle.importKey("raw", b64(e.e), EC, false, []),
+            },
             priv,
             256,
           );
@@ -628,7 +665,14 @@ const GCID = "", GAUTH = "";
             w = new Uint8Array(12 + ct.byteLength);
           w.set(iv);
           w.set(new Uint8Array(ct), 12);
-          const json = JSON.stringify({ v: 1, n: name, u: user, s: toB64(salt), w: toB64(w), p: toB64(pub) });
+          const json = JSON.stringify({
+            v: 1,
+            n: name,
+            u: user,
+            s: toB64(salt),
+            w: toB64(w),
+            p: toB64(pub),
+          });
           return (
             "SU3DL1." + toB64(enc.encode(json)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
           );
@@ -640,7 +684,10 @@ const GCID = "", GAUTH = "";
             const eph = await crypto.subtle.generateKey(EC, true, ["deriveBits"]),
               ep = new Uint8Array(await crypto.subtle.exportKey("raw", eph.publicKey));
             const bits = await crypto.subtle.deriveBits(
-              { name: "ECDH", public: await crypto.subtle.importKey("raw", b64(REQ.p), EC, false, []) },
+              {
+                name: "ECDH",
+                public: await crypto.subtle.importKey("raw", b64(REQ.p), EC, false, []),
+              },
               eph.privateKey,
               256,
             );
@@ -656,7 +703,10 @@ const GCID = "", GAUTH = "";
             out.set(ep);
             out.set(iv, 65);
             out.set(ct, 77);
-            const r = await fetch(NTFY, { method: "POST", body: "SU3DLR1." + toB64(out) });
+            const r = await fetch(NTFY, {
+              method: "POST",
+              body: "SU3DLR1." + toB64(out),
+            });
             if (!r.ok) return false;
             try {
               localStorage.setItem("su3dl-pend", JSON.stringify({ c: code, t: Date.now() }));
@@ -786,7 +836,9 @@ const GCID = "", GAUTH = "";
           if (saved) {
             const b = $("back");
             b.textContent = "Zurück zur Seite";
-            b.addEventListener("click", () => location.reload(), { once: true });
+            b.addEventListener("click", () => location.reload(), {
+              once: true,
+            });
           }
         } else if (saved && sid) enter(b64(saved).buffer, sid).catch(drop);
         else if (saved) drop();
